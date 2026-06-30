@@ -1,0 +1,4 @@
+PyQt5==5.15.7
+PyQt5-sip==12.11.0
+reportlab==4.0.4
+python-dotenv==0.21.0
