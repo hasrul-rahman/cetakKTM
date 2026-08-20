@@ -1,18 +1,7 @@
-name = "cetakktm-worker"
-main = "src/index.js"
+# Cloudflare Workers Configuration (Optional)
+# This file is for reference only
+# For Python Flask apps, use Cloudflare Pages or traditional hosting
+
+name = "cetakktm"
+main = "app.py"
 compatibility_date = "2024-01-01"
-
-[env.production]
-vars = { ENVIRONMENT = "production" }
-
-[build]
-cwd = "."
-command = "npm install && npm run build"
-
-[build.upload]
-format = "service-worker"
-
-[[d1_databases]]
-binding = "DB"
-database_name = "cetakktm"
-database_id = "your-db-id"
