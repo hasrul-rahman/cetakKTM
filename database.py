@@ -72,8 +72,8 @@ class Database:
                 'nim': result[0],
                 'nama': result[1],
                 'prodi': result[2],
-                'tanggal_lahir': result[3],
-                'alamat': result[4],
+                'tanggal_lahir': result[3] or '',
+                'alamat': result[4] or '',
                 'foto': result[5]
             }
         return None
@@ -83,7 +83,7 @@ class Database:
         conn = self.get_connection()
         cursor = conn.cursor()
         
-        cursor.execute('SELECT nim, nama, prodi FROM mahasiswa')
+        cursor.execute('SELECT nim, nama, prodi FROM mahasiswa ORDER BY created_at DESC')
         results = cursor.fetchall()
         conn.close()
         

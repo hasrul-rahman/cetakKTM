@@ -5,11 +5,10 @@ from reportlab.lib.pagesizes import landscape, A5
 from reportlab.lib.units import cm, mm
 from reportlab.pdfgen import canvas
 from reportlab.lib.colors import HexColor, black, white
-from reportlab.lib.styles import ParagraphStyle
-from reportlab.platypus import Paragraph
 from datetime import datetime
 import os
 from pathlib import Path
+from io import BytesIO
 
 class PDFGenerator:
     """Generator untuk membuat PDF KTM"""
@@ -18,26 +17,23 @@ class PDFGenerator:
         self.output_dir = output_dir
         Path(output_dir).mkdir(exist_ok=True)
     
-    def generate_ktm(self, mahasiswa_data, filename=None):
+    def generate_ktm_bytes(self, mahasiswa_data, filename=None):
         """
-        Generate PDF KTM dari data mahasiswa
+        Generate PDF KTM dari data mahasiswa sebagai BytesIO
         
         Args:
             mahasiswa_data (dict): Data mahasiswa dengan keys: nim, nama, prodi
-            filename (str): Nama file output (jika None, menggunakan NIM)
+            filename (str): Nama file output (untuk logging saja)
         
         Returns:
-            str: Path ke file PDF yang dibuat
+            BytesIO: PDF content sebagai bytes buffer
         """
-        if filename is None:
-            filename = f"KTM_{mahasiswa_data['nim']}.pdf"
-        
-        output_path = os.path.join(self.output_dir, filename)
-        
         # Ukuran KTM standar (landscape A5)
         width, height = landscape(A5)
         
-        c = canvas.Canvas(output_path, pagesize=landscape(A5))
+        # Create BytesIO buffer instead of file
+        pdf_buffer = BytesIO()
+        c = canvas.Canvas(pdf_buffer, pagesize=landscape(A5))
         
         # Background - warna biru
         c.setFillColor(HexColor('#1e40af'))
@@ -88,7 +84,7 @@ class PDFGenerator:
         c.drawString(data_x, data_y, 'Nama')
         c.drawString(data_x + 2*cm, data_y, ':')
         c.setFont('Helvetica-Bold', 9)
-        c.drawString(data_x + 2.5*cm, data_y, mahasiswa_data['nama'])
+        c.drawString(data_x + 2.5*cm, data_y, mahasiswa_data['nama'][:30])  # Limit length
         
         # Program Studi
         c.setFont('Helvetica', 9)
@@ -96,7 +92,7 @@ class PDFGenerator:
         c.drawString(data_x, data_y, 'Program Studi')
         c.drawString(data_x + 2*cm, data_y, ':')
         c.setFont('Helvetica-Bold', 9)
-        c.drawString(data_x + 2.5*cm, data_y, mahasiswa_data['prodi'])
+        c.drawString(data_x + 2.5*cm, data_y, mahasiswa_data['prodi'][:30])  # Limit length
         
         # Tanggal Lahir (jika ada)
         if mahasiswa_data.get('tanggal_lahir'):
@@ -112,4 +108,27 @@ class PDFGenerator:
         c.drawString(1.5*cm, 0.7*cm, f"Dicetak: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
         
         c.save()
+        pdf_buffer.seek(0)
+        return pdf_buffer
+    
+    def generate_ktm(self, mahasiswa_data, filename=None):
+        """
+        Generate PDF KTM dari data mahasiswa dan simpan ke file
+        
+        Args:
+            mahasiswa_data (dict): Data mahasiswa dengan keys: nim, nama, prodi
+            filename (str): Nama file output (jika None, menggunakan NIM)
+        
+        Returns:
+            str: Path ke file PDF yang dibuat
+        """
+        if filename is None:
+            filename = f"KTM_{mahasiswa_data['nim']}.pdf"
+        
+        output_path = os.path.join(self.output_dir, filename)
+        pdf_buffer = self.generate_ktm_bytes(mahasiswa_data, filename)
+        
+        with open(output_path, 'wb') as f:
+            f.write(pdf_buffer.getvalue())
+        
         return output_path
