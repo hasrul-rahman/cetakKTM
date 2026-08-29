@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Pengaturan - Upload</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <h1>Pengaturan</h1>
+
+  <section>
+    <h2>Ganti Background</h2>
+    <form id="bgForm" enctype="multipart/form-data">
+      <input type="file" name="background" accept="image/*">
+      <button type="submit">Upload Background</button>
+    </form>
+    <div id="bgResult"></div>
+  </section>
+
+  <section>
+    <h2>Insert Massal Mahasiswa (CSV)</h2>
+    <p>Format CSV: nim,nama,prodi (header wajib). Contoh header: nim,nama,prodi</p>
+    <form id="csvForm" enctype="multipart/form-data">
+      <input type="file" name="csvfile" accept=".csv,text/csv">
+      <button type="submit">Upload CSV</button>
+    </form>
+    <pre id="csvResult"></pre>
+  </section>
+
+  <section>
+    <h2>Upload Foto Mahasiswa</h2>
+    <p>Masukkan NIM lalu pilih foto</p>
+    <form id="photoForm" enctype="multipart/form-data">
+      <input type="text" name="nim" placeholder="NIM" required>
+      <input type="file" name="photo" accept="image/*" required>
+      <button type="submit">Upload Foto</button>
+    </form>
+    <div id="photoResult"></div>
+  </section>
+
+  <script src="{{ url_for('static', filename='js/settings.js') }}"></script>
+</body>
+</html>
