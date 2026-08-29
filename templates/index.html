@@ -1,107 +1,46 @@
-<!DOCTYPE html>
-<html lang="id">
+<!doctype html>
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aplikasi Cetak KTM - Kartu Tanda Mahasiswa</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <meta charset="utf-8">
+  <title>Cetak KTM - Daftar Mahasiswa</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    body {
+      background-image: url('{{ bg_url if bg_url else "" }}');
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-position: center center;
+    }
+    .card { background: rgba(255,255,255,0.9); padding: 12px; margin: 8px; border-radius: 6px; display:flex; align-items:center; gap:12px; }
+    .photo { width:80px; height:100px; object-fit:cover; border:1px solid #ccc; }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <header class="header">
-            <h1>Aplikasi Cetak KTM</h1>
-            <p class="subtitle">Kartu Tanda Mahasiswa</p>
-        </header>
-
-        <div class="tabs">
-            <button class="tab-button active" data-tab="print">Cetak KTM</button>
-            <button class="tab-button" data-tab="manage">Kelola Data</button>
-        </div>
-
-        <!-- Tab 1: Cetak KTM -->
-        <div id="print" class="tab-content active">
-            <section class="section">
-                <h2>Cetak KTM (Kartu Tanda Mahasiswa)</h2>
-                
-                <div class="form-group">
-                    <label for="search-nim">Input NIM:</label>
-                    <div class="input-group">
-                        <input type="text" id="search-nim" placeholder="Masukkan NIM Mahasiswa..." class="input-field">
-                        <button class="btn btn-primary" onclick="searchMahasiswa()">Cari</button>
-                    </div>
-                </div>
-
-                <div id="student-data" class="student-data" style="display: none;">
-                    <div class="data-field">
-                        <label>NIM:</label>
-                        <span id="display-nim">-</span>
-                    </div>
-                    <div class="data-field">
-                        <label>Nama:</label>
-                        <span id="display-nama">-</span>
-                    </div>
-                    <div class="data-field">
-                        <label>Program Studi:</label>
-                        <span id="display-prodi">-</span>
-                    </div>
-                </div>
-
-                <div class="button-group">
-                    <button class="btn btn-secondary" id="btn-preview" onclick="previewKTM()" disabled>Preview KTM</button>
-                    <button class="btn btn-success" id="btn-print" onclick="downloadPDF()" disabled>Cetak PDF</button>
-                    <button class="btn btn-danger" onclick="clearForm()">Hapus</button>
-                </div>
-            </section>
-        </div>
-
-        <!-- Tab 2: Kelola Data -->
-        <div id="manage" class="tab-content">
-            <section class="section">
-                <h2>Kelola Data Mahasiswa</h2>
-                
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="form-nim">NIM:</label>
-                        <input type="text" id="form-nim" class="input-field" placeholder="Masukkan NIM">
-                    </div>
-                    <div class="form-group">
-                        <label for="form-nama">Nama:</label>
-                        <input type="text" id="form-nama" class="input-field" placeholder="Masukkan Nama">
-                    </div>
-                    <div class="form-group">
-                        <label for="form-prodi">Program Studi:</label>
-                        <input type="text" id="form-prodi" class="input-field" placeholder="Masukkan Program Studi">
-                    </div>
-                    <div class="form-group">
-                        <label for="form-tanggal">Tanggal Lahir (opsional):</label>
-                        <input type="date" id="form-tanggal" class="input-field">
-                    </div>
-                </div>
-                
-                <button class="btn btn-primary" onclick="addMahasiswa()">Tambah Data</button>
-                <button class="btn btn-info" onclick="loadAllMahasiswa()">Refresh Data</button>
-
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>NIM</th>
-                            <th>Nama</th>
-                            <th>Program Studi</th>
-                            <th>Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody id="table-body">
-                        <!-- Data akan diisi oleh JavaScript -->
-                    </tbody>
-                </table>
-            </section>
-        </div>
-    </div>
-
-    <footer class="footer">
-        <p>&copy; 2024 Aplikasi Cetak KTM. Version 2.0 Web</p>
-    </footer>
-
-    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+  <header>
+    <h1>Daftar Mahasiswa</h1>
+    <nav><a href="/settings">Pengaturan (upload background / csv / foto)</a></nav>
+  </header>
+  <main>
+    {% if mhs %}
+      <div>
+        {% for m in mhs %}
+          <div class="card">
+            {% if m.photo_url() %}
+              <img class="photo" src="{{ m.photo_url() }}" alt="foto {{ m.nim }}">
+            {% else %}
+              <div style="width:80px;height:100px;background:#eee;display:flex;align-items:center;justify-content:center;color:#666;">No Photo</div>
+            {% endif %}
+            <div>
+              <div><strong>{{ m.nama }}</strong></div>
+              <div>NIM: {{ m.nim }}</div>
+              <div>Prodi: {{ m.prodi }}</div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p>Tidak ada data mahasiswa.</p>
+    {% endif %}
+  </main>
 </body>
 </html>
