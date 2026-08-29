@@ -3,104 +3,280 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aplikasi Cetak KTM - Kartu Tanda Mahasiswa</title>
+    <title>Aplikasi Cetak KTM</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
     <div class="container">
+        <!-- Header -->
         <header class="header">
-            <h1>Aplikasi Cetak KTM</h1>
-            <p class="subtitle">Kartu Tanda Mahasiswa</p>
+            <h1>📋 Aplikasi Cetak KTM (Kartu Tanda Mahasiswa)</h1>
+            <p>Manajemen dan pencetakan kartu mahasiswa dengan mudah</p>
         </header>
 
-        <div class="tabs">
-            <button class="tab-button active" data-tab="print">Cetak KTM</button>
-            <button class="tab-button" data-tab="manage">Kelola Data</button>
-        </div>
+        <!-- Navigation Tabs -->
+        <nav class="tabs">
+            <button class="tab-btn active" data-tab="search">🔍 Cari & Cetak</button>
+            <button class="tab-btn" data-tab="manage">📊 Kelola Data</button>
+            <button class="tab-btn" data-tab="upload-foto">📷 Upload Foto</button>
+            <button class="tab-btn" data-tab="bulk-import">📁 Import Massal</button>
+            <button class="tab-btn" data-tab="settings">⚙️ Pengaturan KTM</button>
+        </nav>
 
-        <!-- Tab 1: Cetak KTM -->
-        <div id="print" class="tab-content active">
-            <section class="section">
-                <h2>Cetak KTM (Kartu Tanda Mahasiswa)</h2>
+        <!-- Alert Messages -->
+        <div id="alertBox" class="alert hidden"></div>
+
+        <!-- Tab 1: Search & Print -->
+        <section id="search" class="tab-content active">
+            <div class="card">
+                <h2>🔍 Cari Mahasiswa & Cetak KTM</h2>
                 
                 <div class="form-group">
-                    <label for="search-nim">Input NIM:</label>
+                    <label>Masukkan NIM Mahasiswa:</label>
                     <div class="input-group">
-                        <input type="text" id="search-nim" placeholder="Masukkan NIM Mahasiswa..." class="input-field">
-                        <button class="btn btn-primary" onclick="searchMahasiswa()">Cari</button>
+                        <input type="text" id="searchNim" placeholder="Contoh: 123456" class="input-field">
+                        <button class="btn btn-primary" onclick="searchMahasiswa()">🔍 Cari</button>
                     </div>
                 </div>
 
-                <div id="student-data" class="student-data" style="display: none;">
-                    <div class="data-field">
-                        <label>NIM:</label>
-                        <span id="display-nim">-</span>
+                <!-- Student Data Display -->
+                <div id="studentDataDisplay" class="student-data hidden">
+                    <div class="student-card">
+                        <div class="student-photo">
+                            <img id="studentPhoto" src="" alt="Foto Mahasiswa" class="photo-image">
+                        </div>
+                        <div class="student-info">
+                            <div class="info-row">
+                                <label>NIM:</label>
+                                <span id="displayNim"></span>
+                            </div>
+                            <div class="info-row">
+                                <label>Nama:</label>
+                                <span id="displayNama"></span>
+                            </div>
+                            <div class="info-row">
+                                <label>Program Studi:</label>
+                                <span id="displayProdi"></span>
+                            </div>
+                            <div class="info-row">
+                                <label>Tanggal Lahir:</label>
+                                <span id="displayTanggalLahir"></span>
+                            </div>
+                            <div class="info-row">
+                                <label>Alamat:</label>
+                                <span id="displayAlamat"></span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="data-field">
-                        <label>Nama:</label>
-                        <span id="display-nama">-</span>
-                    </div>
-                    <div class="data-field">
-                        <label>Program Studi:</label>
-                        <span id="display-prodi">-</span>
+
+                    <!-- Action Buttons -->
+                    <div class="button-group">
+                        <button class="btn btn-success" onclick="previewKTM();">👁️ Preview</button>
+                        <button class="btn btn-danger" onclick="generateKTM();">📥 Download PDF</button>
                     </div>
                 </div>
+            </div>
+        </section>
 
-                <div class="button-group">
-                    <button class="btn btn-secondary" id="btn-preview" onclick="previewKTM()" disabled>Preview KTM</button>
-                    <button class="btn btn-success" id="btn-print" onclick="downloadPDF()" disabled>Cetak PDF</button>
-                    <button class="btn btn-danger" onclick="clearForm()">Hapus</button>
+        <!-- Tab 2: Manage Data -->
+        <section id="manage" class="tab-content">
+            <div class="card">
+                <h2>📊 Kelola Data Mahasiswa</h2>
+
+                <!-- Add New Student -->
+                <div class="form-section">
+                    <h3>➕ Tambah Mahasiswa Baru</h3>
+                    <form id="addMahasiswaForm" class="form-grid">
+                        <div class="form-group">
+                            <label>NIM *</label>
+                            <input type="text" id="addNim" placeholder="Nomor Induk Mahasiswa" class="input-field" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Nama *</label>
+                            <input type="text" id="addNama" placeholder="Nama Lengkap" class="input-field" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Program Studi *</label>
+                            <input type="text" id="addProdi" placeholder="Teknik Informatika" class="input-field" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Tanggal Lahir</label>
+                            <input type="date" id="addTanggalLahir" class="input-field">
+                        </div>
+                        <div class="form-group">
+                            <label>Alamat</label>
+                            <input type="text" id="addAlamat" placeholder="Alamat Lengkap" class="input-field">
+                        </div>
+                        <button type="button" class="btn btn-primary" onclick="addMahasiswa()" style="grid-column: 1 / -1;">✅ Tambah Mahasiswa</button>
+                    </form>
                 </div>
-            </section>
-        </div>
 
-        <!-- Tab 2: Kelola Data -->
-        <div id="manage" class="tab-content">
-            <section class="section">
-                <h2>Kelola Data Mahasiswa</h2>
-                
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="form-nim">NIM:</label>
-                        <input type="text" id="form-nim" class="input-field" placeholder="Masukkan NIM">
-                    </div>
-                    <div class="form-group">
-                        <label for="form-nama">Nama:</label>
-                        <input type="text" id="form-nama" class="input-field" placeholder="Masukkan Nama">
-                    </div>
-                    <div class="form-group">
-                        <label for="form-prodi">Program Studi:</label>
-                        <input type="text" id="form-prodi" class="input-field" placeholder="Masukkan Program Studi">
-                    </div>
-                    <div class="form-group">
-                        <label for="form-tanggal">Tanggal Lahir (opsional):</label>
-                        <input type="date" id="form-tanggal" class="input-field">
+                <!-- List All Students -->
+                <div class="form-section">
+                    <h3>📋 Daftar Semua Mahasiswa</h3>
+                    <button class="btn btn-secondary" onclick="loadAllMahasiswa()">🔄 Muat Data</button>
+                    <div id="mahasiswaList" class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>NIM</th>
+                                    <th>Nama</th>
+                                    <th>Program Studi</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mahasiswaTableBody">
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-                
-                <button class="btn btn-primary" onclick="addMahasiswa()">Tambah Data</button>
-                <button class="btn btn-info" onclick="loadAllMahasiswa()">Refresh Data</button>
+            </div>
+        </section>
 
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>NIM</th>
-                            <th>Nama</th>
-                            <th>Program Studi</th>
-                            <th>Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody id="table-body">
-                        <!-- Data akan diisi oleh JavaScript -->
-                    </tbody>
-                </table>
-            </section>
-        </div>
+        <!-- Tab 3: Upload Foto -->
+        <section id="upload-foto" class="tab-content">
+            <div class="card">
+                <h2>📷 Upload Foto Mahasiswa</h2>
+                <p class="info-text">Upload foto dengan ukuran maksimal 500 KB</p>
+
+                <div class="form-section">
+                    <div class="form-group">
+                        <label>NIM Mahasiswa *</label>
+                        <input type="text" id="fotoNim" placeholder="Masukkan NIM" class="input-field">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Pilih Foto *</label>
+                        <div class="file-upload">
+                            <input type="file" id="fotoFile" accept="image/*" class="file-input">
+                            <span class="file-label">📁 Klik untuk memilih file atau drag & drop</span>
+                        </div>
+                        <p class="help-text">Format: JPG, PNG, GIF | Max: 500 KB</p>
+                    </div>
+
+                    <!-- Photo Preview -->
+                    <div id="photoPreview" class="photo-preview hidden">
+                        <img id="previewImage" src="" alt="Preview">
+                        <p id="fileInfo" class="file-info"></p>
+                    </div>
+
+                    <button class="btn btn-success" onclick="uploadFoto()" style="width: 100%;">📤 Upload Foto</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab 4: Bulk Import -->
+        <section id="bulk-import" class="tab-content">
+            <div class="card">
+                <h2>📁 Import Data Mahasiswa Massal</h2>
+                <p class="info-text">Upload file Excel berisi data mahasiswa untuk import massal</p>
+
+                <div class="form-section">
+                    <div class="form-group">
+                        <label>Panduan Format Excel:</label>
+                        <ul class="guide-list">
+                            <li>Kolom 1: <strong>NIM</strong> (wajib)</li>
+                            <li>Kolom 2: <strong>Nama</strong> (wajib)</li>
+                            <li>Kolom 3: <strong>Prodi</strong> (wajib)</li>
+                            <li>Kolom 4: <strong>Tanggal Lahir</strong> (opsional, format YYYY-MM-DD)</li>
+                            <li>Kolom 5: <strong>Alamat</strong> (opsional)</li>
+                        </ul>
+                    </div>
+
+                    <button class="btn btn-secondary" onclick="downloadTemplate()" style="margin-bottom: 20px;">
+                        📥 Download Template Excel
+                    </button>
+
+                    <div class="form-group">
+                        <label>Pilih File Excel *</label>
+                        <div class="file-upload">
+                            <input type="file" id="excelFile" accept=".xlsx,.xls" class="file-input">
+                            <span class="file-label">📁 Klik untuk memilih file atau drag & drop</span>
+                        </div>
+                        <p class="help-text">Format: .xlsx atau .xls</p>
+                    </div>
+
+                    <!-- Import Progress -->
+                    <div id="importProgress" class="progress-section hidden">
+                        <div class="progress-bar">
+                            <div id="progressFill" class="progress-fill"></div>
+                        </div>
+                        <p id="progressText" class="progress-text"></p>
+                    </div>
+
+                    <!-- Import Results -->
+                    <div id="importResults" class="import-results hidden">
+                        <h4>Hasil Import:</h4>
+                        <p class="success-text">✅ Berhasil: <span id="successCount"></span></p>
+                        <p class="error-text">❌ Gagal: <span id="failedCount"></span></p>
+                        <div id="errorsList" class="errors-list"></div>
+                    </div>
+
+                    <button class="btn btn-primary" onclick="importExcel()" style="width: 100%; margin-top: 20px;">
+                        📤 Import Data
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab 5: Settings -->
+        <section id="settings" class="tab-content">
+            <div class="card">
+                <h2>⚙️ Pengaturan KTM</h2>
+
+                <!-- Background Settings -->
+                <div class="form-section">
+                    <h3>🖼️ Ubah Background KTM</h3>
+                    <p class="info-text">Upload gambar untuk background KTM (ukuran: 85.6mm x 53.98mm)</p>
+                    
+                    <div class="form-group">
+                        <label>Pilih Gambar Background</label>
+                        <div class="file-upload">
+                            <input type="file" id="bgFile" accept="image/*" class="file-input">
+                            <span class="file-label">📁 Klik untuk memilih file atau drag & drop</span>
+                        </div>
+                        <p class="help-text">Format: JPG, PNG, GIF | Max: 500 KB</p>
+                    </div>
+
+                    <!-- Background Preview -->
+                    <div id="bgPreview" class="background-preview hidden">
+                        <img id="bgPreviewImage" src="" alt="Background Preview">
+                        <p id="bgFileInfo" class="file-info"></p>
+                    </div>
+
+                    <button class="btn btn-success" onclick="uploadBackground()" style="width: 100%; margin-bottom: 20px;">
+                        📤 Update Background
+                    </button>
+                </div>
+
+                <!-- Font Color Settings -->
+                <div class="form-section">
+                    <h3>🎨 Ubah Warna Font KTM</h3>
+                    
+                    <div class="form-group">
+                        <label>Pilih Warna Font:</label>
+                        <div class="color-picker-group">
+                            <input type="color" id="fontColorPicker" class="color-picker" value="#000000">
+                            <span id="colorValue" class="color-value">Hitam (#000000)</span>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" onclick="updateFontColor()" style="width: 100%;">
+                        ✅ Ubah Warna Font
+                    </button>
+                </div>
+            </div>
+        </section>
     </div>
 
-    <footer class="footer">
-        <p>&copy; 2024 Aplikasi Cetak KTM. Version 2.0 Web</p>
-    </footer>
+    <!-- Modal Preview PDF -->
+    <div id="pdfModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closePdfModal()">&times;</span>
+            <h3>Preview KTM</h3>
+            <iframe id="pdfFrame" src="" style="width: 100%; height: 600px; border: none;"></iframe>
+        </div>
+    </div>
 
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
