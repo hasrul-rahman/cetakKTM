@@ -10,6 +10,8 @@ import logging
 
 from database import Database
 from utils.pdf_generator import PDFGenerator
+from utils.file_handler import FileHandler
+from utils.excel_handler import ExcelHandler
 from models.mahasiswa import Mahasiswa
 
 # Configure logging
@@ -22,13 +24,21 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__, template_folder='templates', static_folder='static')
 CORS(app)
 
-# Initialize database and PDF generator
+# Configure upload folder
+UPLOAD_FOLDER = 'uploads'
+MAX_FILE_SIZE = 500 * 1024  # 500 KB
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
+
+# Initialize database, PDF generator, and file handler
 try:
     db = Database()
     pdf_gen = PDFGenerator()
-    logger.info("Database and PDF generator initialized successfully")
+    file_handler = FileHandler()
+    logger.info("Database, PDF generator, and file handler initialized successfully")
 except Exception as e:
-    logger.error(f"Error initializing database: {str(e)}")
+    logger.error(f"Error initializing components: {str(e)}")
     raise
 
 @app.route('/')
@@ -39,6 +49,8 @@ def index():
     except Exception as e:
         logger.error(f"Error rendering index: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+# ========== MAHASISWA ENDPOINTS ==========
 
 @app.route('/api/mahasiswa/search', methods=['POST'])
 def search_mahasiswa():
@@ -135,6 +147,107 @@ def delete_mahasiswa():
         logger.error(f"Error deleting mahasiswa: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+# ========== PHOTO UPLOAD ENDPOINTS ==========
+
+@app.route('/api/mahasiswa/upload-foto', methods=['POST'])
+def upload_foto():
+    """Upload foto mahasiswa"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'File tidak ditemukan'}), 400
+        
+        if 'nim' not in request.form:
+            return jsonify({'error': 'NIM tidak ditemukan'}), 400
+        
+        file = request.files['file']
+        nim = request.form['nim'].strip()
+        
+        # Validasi bahwa mahasiswa ada
+        mahasiswa = db.search_mahasiswa_by_nim(nim)
+        if not mahasiswa:
+            return jsonify({'error': f'Mahasiswa dengan NIM {nim} tidak ditemukan'}), 404
+        
+        # Save foto
+        foto_path, error = file_handler.save_student_photo(file, nim)
+        if error:
+            return jsonify({'error': error}), 400
+        
+        # Update database
+        db.update_mahasiswa_foto(nim, foto_path)
+        logger.info(f"Foto uploaded for NIM: {nim}")
+        
+        return jsonify({
+            'message': 'Foto berhasil diupload',
+            'foto_path': foto_path
+        }), 200
+    
+    except Exception as e:
+        logger.error(f"Error uploading foto: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# ========== KTM SETTINGS ENDPOINTS ==========
+
+@app.route('/api/ktm/settings', methods=['GET'])
+def get_ktm_settings():
+    """Get KTM settings"""
+    try:
+        settings = db.get_ktm_settings()
+        return jsonify(settings or {}), 200
+    except Exception as e:
+        logger.error(f"Error getting KTM settings: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/ktm/upload-background', methods=['POST'])
+def upload_ktm_background():
+    """Upload KTM background"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'File tidak ditemukan'}), 400
+        
+        file = request.files['file']
+        
+        # Save background
+        bg_path, error = file_handler.save_ktm_background(file)
+        if error:
+            return jsonify({'error': error}), 400
+        
+        # Update database
+        db.update_ktm_background(bg_path)
+        logger.info(f"KTM background updated")
+        
+        return jsonify({
+            'message': 'Background KTM berhasil diubah',
+            'background_path': bg_path
+        }), 200
+    
+    except Exception as e:
+        logger.error(f"Error uploading background: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/ktm/font-color', methods=['PUT'])
+def update_font_color():
+    """Update KTM font color"""
+    try:
+        data = request.get_json()
+        font_color = data.get('font_color', '#000000')
+        
+        if not font_color.startswith('#'):
+            font_color = '#' + font_color
+        
+        db.update_ktm_font_color(font_color)
+        logger.info(f"KTM font color updated: {font_color}")
+        
+        return jsonify({
+            'message': 'Warna font berhasil diubah',
+            'font_color': font_color
+        }), 200
+    
+    except Exception as e:
+        logger.error(f"Error updating font color: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# ========== PDF GENERATION ENDPOINTS ==========
+
 @app.route('/api/ktm/generate', methods=['POST'])
 def generate_pdf():
     """Generate KTM PDF"""
@@ -144,14 +257,20 @@ def generate_pdf():
             'nim': data.get('nim', ''),
             'nama': data.get('nama', ''),
             'prodi': data.get('prodi', ''),
-            'tanggal_lahir': data.get('tanggal_lahir', '')
+            'tanggal_lahir': data.get('tanggal_lahir', ''),
+            'foto_path': data.get('foto_path')
         }
         
         if not all([mahasiswa_data['nim'], mahasiswa_data['nama'], mahasiswa_data['prodi']]):
             return jsonify({'error': 'NIM, Nama, dan Prodi harus diisi'}), 400
         
+        # Get KTM settings
+        settings = db.get_ktm_settings()
+        bg_path = settings.get('background_path') if settings else None
+        font_color = settings.get('font_color') if settings else '#000000'
+        
         # Generate PDF in memory
-        pdf_buffer = pdf_gen.generate_ktm_bytes(mahasiswa_data)
+        pdf_buffer = pdf_gen.generate_ktm_bytes(mahasiswa_data, bg_path, font_color)
         logger.info(f"PDF generated for NIM: {mahasiswa_data['nim']}")
         
         return send_file(
@@ -174,14 +293,20 @@ def preview_pdf():
             'nim': data.get('nim', ''),
             'nama': data.get('nama', ''),
             'prodi': data.get('prodi', ''),
-            'tanggal_lahir': data.get('tanggal_lahir', '')
+            'tanggal_lahir': data.get('tanggal_lahir', ''),
+            'foto_path': data.get('foto_path')
         }
         
         if not all([mahasiswa_data['nim'], mahasiswa_data['nama'], mahasiswa_data['prodi']]):
             return jsonify({'error': 'NIM, Nama, dan Prodi harus diisi'}), 400
         
+        # Get KTM settings
+        settings = db.get_ktm_settings()
+        bg_path = settings.get('background_path') if settings else None
+        font_color = settings.get('font_color') if settings else '#000000'
+        
         # Generate PDF in memory for preview
-        pdf_buffer = pdf_gen.generate_ktm_bytes(mahasiswa_data)
+        pdf_buffer = pdf_gen.generate_ktm_bytes(mahasiswa_data, bg_path, font_color)
         logger.info(f"PDF preview for NIM: {mahasiswa_data['nim']}")
         
         return send_file(
@@ -192,6 +317,86 @@ def preview_pdf():
     except Exception as e:
         logger.error(f"Error previewing PDF: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+# ========== BULK IMPORT ENDPOINTS ==========
+
+@app.route('/api/mahasiswa/import-excel', methods=['POST'])
+def import_excel():
+    """Import mahasiswa dari file Excel"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'File tidak ditemukan'}), 400
+        
+        file = request.files['file']
+        
+        # Validasi file
+        is_valid, error = file_handler.validate_excel_file(file)
+        if not is_valid:
+            return jsonify({'error': error}), 400
+        
+        # Parse Excel
+        mahasiswa_list, error = ExcelHandler.parse_excel(file)
+        if error:
+            return jsonify({'error': error}), 400
+        
+        # Insert data
+        results = db.insert_bulk_mahasiswa(mahasiswa_list)
+        
+        logger.info(f"Bulk import completed: {results['success']} success, {results['failed']} failed")
+        
+        return jsonify({
+            'message': 'Import data selesai',
+            'success': results['success'],
+            'failed': results['failed'],
+            'errors': results['errors'][:10]  # Limit errors to 10
+        }), 200
+    
+    except Exception as e:
+        logger.error(f"Error importing Excel: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/mahasiswa/import-template', methods=['GET'])
+def download_import_template():
+    """Download template Excel untuk import"""
+    try:
+        import openpyxl
+        
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = 'Mahasiswa'
+        
+        # Header
+        headers = ['NIM', 'Nama', 'Prodi', 'Tanggal Lahir (YYYY-MM-DD)', 'Alamat']
+        ws.append(headers)
+        
+        # Sample data
+        ws.append(['123456', 'Budi Santoso', 'Teknik Informatika', '2000-01-15', 'Jl. Merdeka'])
+        ws.append(['123457', 'Siti Nurhaliza', 'Sistem Informasi', '2000-02-20', 'Jl. Sudirman'])
+        
+        # Set column width
+        ws.column_dimensions['A'].width = 15
+        ws.column_dimensions['B'].width = 25
+        ws.column_dimensions['C'].width = 25
+        ws.column_dimensions['D'].width = 20
+        ws.column_dimensions['E'].width = 30
+        
+        # Save to BytesIO
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name='Template_Import_Mahasiswa.xlsx'
+        )
+    
+    except Exception as e:
+        logger.error(f"Error generating template: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# ========== HEALTH CHECK ==========
 
 @app.route('/health', methods=['GET'])
 def health():
